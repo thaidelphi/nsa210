@@ -48,6 +48,7 @@ ZyXEL NSA210 เป็น NAS พลังงานต่ำ (CPU Marvell Kirkwo
   - `\\<IP-NAS>\download`
   - `\\<IP-NAS>\Transmission`
 - สิทธิ์การเขียนไฟล์เต็มรูปแบบ (`write ok = yes`, `force user = root`, `create mask = 0777`)
+- อ่านคู่มือการแก้ปัญหาและการตั้งค่าสำหรับ Windows 11 ได้ที่: [docs/WINDOWS_11_SMB_SETUP.md](docs/WINDOWS_11_SMB_SETUP.md)
 
 ### 5. ระบบบูตอัตโนมัติ (Persistent Boot Hooks)
 - ตั้งค่าให้ทุกเซอร์วิส (DNS, Tracker Proxy, Transmission Daemon, Bind Mount เมนูเว็บ, Apache Auth) เริ่มทำงานเองอัตโนมัติทุกครั้งที่เปิดหรือรีบูตเครื่อง NAS ผ่าน `/usr/local/zy-pkgs/etc/init.d/sshd`
@@ -61,6 +62,8 @@ nsa210/
 ├── bin/
 │   ├── curl-8.14                   # Static curl 8.14.1 (ARMv5te, musl, OpenSSL 3.5.0, TLS 1.3)
 │   └── tracker_proxy.pl            # Perl daemon สำหรับแปลง request TLS 1.3 และจัดการ tracker
+├── docs/
+│   └── WINDOWS_11_SMB_SETUP.md     # คู่มือการตั้งค่าและแก้ปัญหาการเชื่อมต่อ SMB บน Windows 11 (24H2)
 ├── transmission/
 │   ├── web/
 │   │   ├── index.html              # Transmission Web Interface ที่เพิ่ม Toolbar & Modal Editor

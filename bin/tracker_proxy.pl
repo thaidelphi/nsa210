@@ -75,6 +75,45 @@ sub auto_patch_torrents {
     }
 }
 
+my $is_throttled = 0;
+my $high_load_count = 0;
+my $low_load_count = 0;
+
+sub check_cpu_watchdog {
+    my $load = 0;
+    if (open(my $lf, "<", "/proc/loadavg")) {
+        my $line = <$lf>;
+        close($lf);
+        if ($line =~ /^([\d\.]+)/) {
+            $load = $1;
+        }
+    }
+    return unless $load > 0;
+
+    my $ts = scalar localtime();
+    # Single-core ARM 1GHz: load >= 1.8 indicates heavy CPU usage
+    if ($load >= 1.8) {
+        $high_load_count++;
+        $low_load_count = 0;
+        if ($high_load_count >= 2 && !$is_throttled) {
+            $is_throttled = 1;
+            system("$TR_REMOTE -d 1200 >/dev/null 2>&1");
+            print "[$ts] [CPU Watchdog] High load detected ($load >= 1.8 for 60s) -> Throttling download speed to 1,200 kB/s to protect CPU\n";
+        }
+    } elsif ($load <= 1.1) {
+        $low_load_count++;
+        $high_load_count = 0;
+        if ($low_load_count >= 2 && $is_throttled) {
+            $is_throttled = 0;
+            system("$TR_REMOTE -D >/dev/null 2>&1");
+            print "[$ts] [CPU Watchdog] Load normalized ($load <= 1.1 for 60s) -> Restoring full unlimited download speed\n";
+        }
+    } else {
+        $high_load_count = 0;
+        $low_load_count = 0;
+    }
+}
+
 my $server = IO::Socket::INET->new(
     LocalHost => '127.0.0.1',
     LocalPort => $PORT,
@@ -101,6 +140,7 @@ while (1) {
             }
         }
 
+        check_cpu_watchdog();
         auto_patch_torrents();
     }
     

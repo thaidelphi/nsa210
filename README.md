@@ -29,6 +29,7 @@ ZyXEL NSA210 เป็น NAS พลังงานต่ำ (CPU Marvell Kirkwo
 - **รองรับ Disabled Tracker:** ระบบจำลองการตอบกลับเพื่อรองรับการพัก Tracker ได้อย่างราบรื่นโดยไม่เกิดข้อผิดพลาดกับ Transmission Daemon
 - **Auto-Patching Loop:** สแกนตรวจสอบ Torrent ที่เพิ่งเพิ่มเข้ามาใหม่ทุก 30 วินาที และแปลง HTTPS Tracker ผ่าน Proxy ให้อัตโนมัติ
 - **Log Rotation บนฮาร์ดดิสก์:** บันทึก Log ลงฮาร์ดดิสก์จริง (`/dev/md0`) พร้อมระบบหมุนเวียนไฟล์อัตโนมัติเมื่อขนาดเกิน 500 KB ป้องกัน RAMDisk (`/tmp`) เต็ม 100%
+- **ระบบ Smart CPU Watchdog (ควบคุมอุณหภูมิและโหลด CPU อัตโนมัติ):** คอยตรวจสอบ Load Average ทุก 30 วินาที หาก CPU ทำงานหนักต่อเนื่อง (Load >= 1.8 นาน 60 วิ) จะปรับลดสปีดลงมาที่ 1,200 kB/s เพื่อพักเครื่อง และจะปลดกลับมาวิ่งเต็มสปีดทันทีเมื่อโหลดกลับสู่ระดับปกติ (Load <= 1.1)
 
 ### 2. Transmission Web UI & Memory Tuning
 - **ปุ่ม [ ✏️ แก้ Tracker (BitComet) ] บน Toolbar** และเมนูคลิกขวา (Context Menu)

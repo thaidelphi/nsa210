@@ -75,6 +75,9 @@ fi
 
 # 6. Configure Samba Shares for Windows 10/11 Network Access
 echo "[+] Checking Samba configuration..."
+if ! grep -q "server signing" /etc/samba/smb.conf 2>/dev/null; then
+    sed -i '/security = user/a \\tlanman auth = yes\n\tntlm auth = yes\n\tserver signing = auto' /etc/samba/smb.conf 2>/dev/null || true
+fi
 if ! grep -q "\[download\]" /etc/samba/smb.conf 2>/dev/null; then
     cat >> /etc/samba/smb.conf << 'EOF'
 

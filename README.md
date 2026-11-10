@@ -14,7 +14,7 @@
 ZyXEL NSA210 เป็น NAS พลังงานต่ำ (CPU Marvell Kirkwood ARM926EJ-S ARMv5te, Linux Kernel 2.6.31.8) ซึ่งหยุดพัฒนาไปหลายปี:
 1. **TLS 1.3 / Cloudflare:** ปัจจุบันเว็บ BitTorrent Tracker ส่วนใหญ่ (เช่น SiamBIT, Bit-SV) บังคับใช้ TLS 1.2/1.3 ร่วมกับระบบป้องกัน Cloudflare ทำให้ OpenSSL และ libcurl ดั้งเดิมบน NAS ไม่สามารถเชื่อมต่อ Announce ได้ (เกิดข้อผิดพลาด `Peer certificate cannot be authenticated` หรือ `Unsupported protocol`)
 2. **Transmission ติดข้อจำกัด HTTPS:** Transmission ดั้งเดิมบน NSA210 ไม่รองรับการเชื่อมต่อ HTTPS Tracker สมัยใหม่
-3. **การสลับ Tracker สไตล์ BitComet:** ผู้ใช้ส่วนใหญ่ในไทยนิยมใช้ BitComet ที่มีฟังก์ชันเปลี่ยนโปรโตคอล `ht..tps://` เพื่อพักการทำงานของ Tracker สำรอง แต่ Transmission ทั่วไปจะปฏิเสธ URL รูปแบบนี้ทันที
+3. **การแก้ไข Tracker:** Transmission ดั้งเดิมไม่มีหน้าต่างสำหรับแก้ไขหรือใส่ลิสต์ Tracker หลายรายการพร้อมกันได้อย่างสะดวกเหมือนบนโปรแกรม BitComet
 4. **ZyXEL Web GUI ยุคเก่า:** หน้าเว็บ ZyXEL ดั้งเดิมเขียนด้วย Dojo ยุคเก่า เมื่อเปิดหน้า Transmission มักเด้งเป็นหน้าต่างใหม่ (Popup) หรือติดรหัสผ่านของ Apache
 5. **แชร์ไฟล์บน Windows 10/11 ไม่ได้:** Samba ดั้งเดิมไม่รองรับการเข้าถึงแบบ Guest ของ Windows ยุคใหม่
 
@@ -26,15 +26,12 @@ ZyXEL NSA210 เป็น NAS พลังงานต่ำ (CPU Marvell Kirkwo
 - **Forwarder Proxy ในตัว:** รันบน `127.0.0.1:8888` ทำหน้าที่รับ Announce request จาก Transmission แล้วส่งต่อผ่าน `curl-8.14` แบบ TLS 1.3 ไปยัง Tracker จริง
 - **Static curl 8.14 (ARMv5te, musl, OpenSSL 3.5.0):** ไบนารีคอมไพล์แบบ Static พิเศษสำหรับชิป ARMv5 ไม่พึ่งพา glibc/uClibc รุ่นเก่าของระบบ
 - **DNS Cache & Cloudflare Anycast:** แก้ปัญหา DNS timeout บน NAS ด้วยการแมป IP ตรง (`--resolve host:443:ip`)
-- **รองรับ `ht..tps://` (BitComet Disabled Tracker):** เมื่อตั้งค่า Tracker เป็น `ht..tps://` ระบบจะตอบกลับ bencoded `failure reason: Tracker disabled` ทำให้ Transmission จำค่า Tracker ไว้ได้โดยไม่เกิด RPC Error
+- **รองรับ Disabled Tracker:** ระบบจำลองการตอบกลับเพื่อรองรับการพัก Tracker ได้อย่างราบรื่นโดยไม่เกิดข้อผิดพลาดกับ Transmission Daemon
 - **Auto-Patching Loop:** สแกนตรวจสอบ Torrent ที่เพิ่งเพิ่มเข้ามาใหม่ทุก 30 วินาที และแปลง HTTPS Tracker ผ่าน Proxy ให้อัตโนมัติ
 
 ### 2. Transmission Web UI - เครื่องมือแก้ไข Tracker สไตล์ BitComet
 - **ปุ่ม [ ✏️ แก้ Tracker (BitComet) ] บน Toolbar** และเมนูคลิกขวา (Context Menu)
-- **แปลงโปรโตคอลในคลิกเดียว:**
-  - `⇄ สลับ https:// ⟷ ht..tps://`
-  - `➡️ เป็น ht..tps://` (สำหรับปิดพัก Tracker)
-  - `⬅️ กลับเป็น https://` (สำหรับเปิดใช้งาน Tracker)
+- **เครื่องมือจัดการ URL Tracker:** เพิ่ม/แก้ไขรายการ Tracker ทีละหลายบรรทัดได้สะดวกเหมือนโปรแกรม BitComet บน PC
 - **เลือกลิสต์ Torrent ได้จาก Dropdown** ภายในกล่อง Popup ทันที
 - **บันทึกแบบ Sequential RPC:** เรียก `trackerAdd` ก่อนแล้วตามด้วย `trackerRemove` เพื่อขจัดบั๊ก `Transmission RPC: invalid argument`
 - **ระบบสำรองข้อมูลใน LocalStorage:** จำค่า Tracker ที่แก้ไขไว้แม้รีเฟรชหน้าเว็บ
@@ -78,6 +75,7 @@ nsa210/
 │   └── admin/
 │       └── frame_left_menu.html    # แพตช์เมนูด้านซ้ายของ ZyXEL Admin Portal
 ├── samba/
+│   ├── fix_smb_windows11.bat       # สคริปต์แก้ปัญหาการเชื่อมต่อ Samba บน Windows 11 (24H2)
 │   └── smb.conf                    # คอนฟิก Samba สำหรับแชร์ไฟล์สู่ Windows 10/11
 ├── init.d/
 │   └── sshd                        # สคริปต์ Startup Hook เริ่มการทำงานของระบบอัตโนมัติเมื่อบูต
@@ -145,9 +143,8 @@ nsa210/
 ### วิธีใช้งานเครื่องมือแก้ Tracker (BitComet Style)
 1. เปิดหน้าเว็บ Transmission แล้วคลิกปุ่มสีเขียว **[ ✏️ แก้ Tracker (BitComet) ]** ด้านบน
 2. เลือกรายการ Torrent ที่ต้องการแก้ไขจากเมนูดรอปดาวน์
-3. สามารถคัดลอกลิสต์ Tracker จาก BitComet มาวางได้ทันที
-4. กดปุ่ม `➡️ เป็น ht..tps://` เมื่อต้องการปิดใช้งาน Tracker ชั่วคราว หรือกด `⬅️ กลับเป็น https://` เมื่อต้องการเปิดใช้งาน
-5. กดปุ่ม **Save (บันทึก)** ระบบจะทำการบันทึกและเชื่อมต่อ Tracker ให้ทันที
+3. คัดลอกหรือแก้ไขลิสต์ URL Tracker ตามที่ต้องการ (รองรับการใส่หลายบรรทัด)
+4. กดปุ่ม **Save (บันทึก)** ระบบจะทำการบันทึกและเชื่อมต่อ Tracker ให้ทันที
 
 ---
 

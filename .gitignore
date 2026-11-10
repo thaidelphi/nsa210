@@ -1,0 +1,15 @@
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
+*~
+.DS_Store
+Thumbs.db
+
+# Torrent data files
+*.torrent
+torrents/
+resume/
+blocklists/
+dht.dat
+stats.json

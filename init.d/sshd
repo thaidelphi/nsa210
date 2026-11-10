@@ -1,0 +1,76 @@
+#!/bin/sh
+
+case "$1" in
+    startup|start)
+        # 1. DNS and hosts
+        echo nameserver 8.8.8.8 > /etc/resolv.conf
+        echo nameserver 1.1.1.1 >> /etc/resolv.conf
+        if ! grep -q zyxel.ddnss.eu /etc/hosts; then
+            echo 130.61.246.67 zyxel.ddnss.eu >> /etc/hosts
+        fi
+
+        # 2. Package repo URL
+        if [ -d /i-data/md0/admin/zy-pkgs ]; then
+            printf http://zyxel.ddnss.eu/Users/Mijzelf/zypkg-repo/ > /i-data/md0/admin/zy-pkgs/web_prefix
+            chmod 777 /i-data/md0/admin/zy-pkgs/web_prefix
+        fi
+
+        # 3. Ensure /ffp link
+        if [ ! -L /ffp ]; then
+            ln -snf /i-data/fe336d09/ffp /ffp
+        fi
+
+        # 4. Root SSH keys
+        mkdir -p /root/.ssh
+        chmod 700 /root/.ssh
+        if [ -f /ffp/etc/ssh/authorized_keys ]; then
+            cp -f /ffp/etc/ssh/authorized_keys /root/.ssh/authorized_keys
+            chmod 600 /root/.ssh/authorized_keys
+        fi
+
+        # 5. Start SSH
+        if [ -x /ffp/start/sshd.sh ]; then
+            /ffp/start/sshd.sh start
+        fi
+
+        # 5.5 Start TLS 1.2/1.3 tracker forwarder proxy
+        if [ -x /usr/local/zy-pkgs/bin/tracker_proxy.pl ]; then
+            killall perl 2>/dev/null
+            /ffp/bin/perl /usr/local/zy-pkgs/bin/tracker_proxy.pl </dev/null >/tmp/tracker_proxy.log 2>&1 &
+        fi
+
+        # 6. Start Transmission BitTorrent client
+        if [ -x /usr/local/zy-pkgs/bin/transmission-daemon ]; then
+            LD_LIBRARY_PATH=/usr/local/zy-pkgs/lib /usr/local/zy-pkgs/bin/transmission-daemon -g /usr/local/zy-pkgs/config/Transmission/ 2>/dev/null
+        fi
+
+        # 7. Bind mount customized Web GUI menu
+        if [ -f /i-data/fe336d09/ffp/web_mod/frame_left_menu.html ]; then
+            mount --bind /i-data/fe336d09/ffp/web_mod/frame_left_menu.html /usr/local/apache/htdocs/zyxel/admin/frame_left_menu.html 2>/dev/null
+        fi
+
+        # 8. Allow /zyxel/pkg/ in Apache without auth redirect (wait for httpd in background)
+        (
+            for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
+                if grep -q "AuthZyxelSkipPattern" /etc/service_conf/httpd.conf 2>/dev/null; then
+                    if ! grep -q "/zyxel/pkg/" /etc/service_conf/httpd.conf; then
+                        sed -i 's|AuthZyxelSkipPattern |AuthZyxelSkipPattern /zyxel/pkg/ |' /etc/service_conf/httpd.conf
+                        killall -HUP httpd 2>/dev/null
+                        break
+                    fi
+                fi
+                sleep 2
+            done
+        ) </dev/null >/dev/null 2>&1 &
+        ;;
+    shutdown|stop)
+        killall transmission-daemon 2>/dev/null
+        killall perl 2>/dev/null
+        if [ -x /ffp/start/sshd.sh ]; then
+            /ffp/start/sshd.sh stop
+        fi
+        ;;
+    *)
+        echo "Usage: $0 {startup|shutdown|start|stop}"
+        ;;
+esac

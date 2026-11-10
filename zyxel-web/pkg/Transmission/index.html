@@ -1,0 +1,152 @@
+<style type="text/css">
+.transmission-page {
+    margin: 0;
+    padding: 10px;
+    box-sizing: border-box;
+    font-family: Arial, Tahoma, Helvetica, sans-serif;
+    color: #333;
+}
+.transmission-topbar {
+    background: #eaf1f7;
+    border: 1px solid #b2cbe0;
+    border-radius: 4px;
+    padding: 8px 14px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.transmission-topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.transmission-btn-tracker {
+    display: inline-block;
+    background: #28a745;
+    color: #ffffff !important;
+    text-decoration: none !important;
+    font-weight: bold;
+    font-size: 13px;
+    padding: 7px 16px;
+    border-radius: 4px;
+    border: 1px solid #1e7e34;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+}
+.transmission-btn-tracker:hover {
+    background: #218838;
+}
+.transmission-btn-open {
+    display: inline-block;
+    background: #0070ba;
+    color: #ffffff !important;
+    text-decoration: none !important;
+    font-weight: bold;
+    font-size: 13px;
+    padding: 7px 16px;
+    border-radius: 4px;
+    border: 1px solid #005a96;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+}
+.transmission-btn-open:hover {
+    background: #005a96;
+}
+#trans_iframe_container {
+    width: 100%;
+    border: 1px solid #b2cbe0;
+    background: #ffffff;
+    box-sizing: border-box;
+}
+#trans_iframe {
+    width: 100%;
+    height: 620px;
+    border: none;
+    display: block;
+}
+</style>
+
+<div class="transmission-page">
+    <div class="transmission-topbar">
+        <div>
+            <span style="font-size: 15px; font-weight: bold; color: #164675;">Transmission BitTorrent</span>
+            <span style="margin-left: 10px; font-size: 12px; color: #2e7d32; font-weight: bold;">&#x25cf; &#3629;&#3629;&#3609;&#3652;&#3621;&#3609;&#3660; Online (Port 9091)</span>
+        </div>
+        <div class="transmission-topbar-actions">
+            <button id="btn_edit_tracker_top" type="button" class="transmission-btn-tracker" onclick="triggerEditTrackers()">
+                &#x270f;&#xfe0f; &#3649;&#3585;&#3657;&#3652;&#3586; Tracker (BitComet)
+            </button>
+            <a id="trans_open_newtab" class="transmission-btn-open" href="javascript:void(0)" onclick="window.open('http://' + (window.location.hostname || location.hostname) + ':9091/transmission/web/', '_blank'); return false;">
+                &#x2197; &#3648;&#3611;&#3636;&#3604; Transmission &#3651;&#3609;&#3649;&#3607;&#3655;&#3610;&#3651;&#3627;&#3617;&#3656; (Full Tab)
+            </a>
+        </div>
+    </div>
+    <div id="trans_iframe_container">
+        <iframe id="trans_iframe" src="" frameborder="0"></iframe>
+    </div>
+</div>
+
+<script type="text/javascript">
+function triggerEditTrackers() {
+    try {
+        var ifr = document.getElementById("trans_iframe");
+        var win = ifr ? (ifr.contentWindow || ifr.contentDocument.defaultView) : null;
+        if (win) {
+            win.postMessage({ action: "open_tracker_editor" }, "*");
+            if (win.transmission && typeof win.transmission.promptEditTrackers === "function") {
+                win.transmission.promptEditTrackers();
+            }
+        }
+    } catch(err) {
+        console.log("triggerEditTrackers err:", err);
+    }
+}
+
+(function() {
+    // 1. Immediately unblock loading overlay
+    try {
+        if (typeof utility !== "undefined") {
+            if (typeof _container_ !== "undefined" && _container_) {
+                utility.containerLoadDone(_container_);
+            }
+            var cp = dojo.widget.byId("contentPane");
+            if (cp) {
+                utility.containerLoadDone(cp);
+                utility.unblockInput(cp);
+            }
+        }
+        if (typeof Navigator !== "undefined" && Navigator.setMessage) {
+            Navigator.setMessage("ready");
+        }
+    } catch(err) {}
+
+    // 2. Set URLs with unique timestamp to bypass any browser/iframe cache
+    var host = window.location.hostname || "192.168.1.69";
+    var timestamp = new Date().getTime();
+    var webUrl = "http://" + host + ":9091/transmission/web/?t=" + timestamp;
+
+    var btn = document.getElementById("trans_open_newtab");
+    if (btn) btn.href = webUrl;
+
+    var ifr = document.getElementById("trans_iframe");
+    if (ifr) {
+        ifr.src = webUrl;
+        var h = window.innerHeight || document.documentElement.clientHeight || 750;
+        var frameH = h - 170;
+        if (frameH < 450) frameH = 450;
+        ifr.style.height = frameH + "px";
+    }
+
+    // 3. Register Dojo onload hook
+    if (typeof _container_ !== "undefined" && _container_ && _container_.addOnLoad) {
+        _container_.addOnLoad(function() {
+            try {
+                if (typeof utility !== "undefined") {
+                    utility.containerLoadDone(_container_);
+                }
+            } catch(e) {}
+        });
+    }
+})();
+</script>

@@ -1,0 +1,517 @@
+<script type="text/javascript">
+// The left menu items is generated from siteMap
+var Pane = function(/*String*/level, /*String*/file, /*Boolean*/disabled) {
+	this.level= level; // The container widget ID that this pane placed in
+	this.file = file; // The container filename
+	this.disabled = disabled;
+};
+
+this.isRoot = true;
+var pkgList = [];
+var moveNodeId =[];
+var transedPkgString = {};
+this.linkToiTune = false;
+
+var siteMap = {
+	"NSA-220": {
+		"System Setting": {
+			"Server Name": new Pane(2, 'sys_server_name.html', false),
+			"Date/Time": new Pane(2, 'sys_date_time.html', false)
+		},
+
+		"Storage": {
+			"Volume": new Pane(2, 'storage.html', false)
+		},
+
+		"Network": {
+			"TCP/IP": new Pane(2, 'net_tcpip.html', false),
+			"UPnP Port Mapping": new Pane(2, 'net_upnp.html', false),
+			"PPPoE": new Pane(2, 'net_pppoe.html', false)
+		},
+
+		"Applications": {
+			"FTP Server": new Pane(2, 'apps_ftp.html', false),
+			"Media Server": new Pane(2, 'apps_media_server.html', false),
+			"Download Service": new Pane(2, 'apps_download_service.html', false),
+			"Transmission": new Pane(2, '../pkg/Transmission/index.html?v=20261109_9', false),
+			"Web Publishing": new Pane(2, 'apps_web_service.html', false),
+			"Broadcatching": new Pane(2, 'apps_broadcatching.html', false),
+			"Print Server": new Pane(2, 'apps_printer_server.html', false),
+			"Copy/Sync Button": new Pane(2, 'apps_copy_button.html', false),
+			"Package": new Pane(2, 'apps_package_mgmt.html', false),
+			"Auto Upload": {
+				"Flickr/YouTube": new Pane(3, 'apps_auto_upload.html', false),
+				"FTP Uploadr": new Pane(3, 'apps_ftp_upload.html', false)
+			},
+			"Dropbox": new Pane(2, 'apps_dropbox.html', false),
+			"Time Machine": new Pane(2, 'apps_time_machine.html', false)
+		},
+
+		"Sharing": {
+			"Users": new Pane(2, 'users.html', false),
+			"Groups": new Pane(2, 'groups.html', false),
+			"Shares": new Pane(2, 'shares.html', false)
+		},
+
+
+		"Maintenance": {
+			"Power": new Pane(2, 'maint_power_mgmt.html', false),
+			"Log": new Pane(2, 'maint_log.html', false),
+			"Configuration": new Pane(2, 'maint_configuration.html', false),
+			"SSL": new Pane(2, 'ssl_main.html', false),
+			"FW Upgrade": new Pane(2, 'maint_firmware_upgrade.html', false),
+			"Shutdown": new Pane(2, 'maint_shutdown.html', false)
+		},
+		"Logout": new Pane(1, 'logout', false)
+	}
+};
+
+// End of siteMap
+/*------------------------------------------------------------------*/
+
+// Widget of root tree node
+this.root = null;
+
+// Placeholder for tree node properties such as widget, title, and pane
+this.nodeInfo = {}; // Use tree node's widgetId as the key
+
+// The reference to the content pane,
+this.contentPane = null;
+
+// Most recently clicked tree node
+this.clickedTreeNode = null;
+
+// Current container in content pane
+// By storing current container, it provides to
+// prevent from reloading an already-there container
+this.currentContentPaneContainer = {};
+
+
+// NOTE - This function should be called AFTER this.setLanguage(), because
+// the navigation text is composed from translated titles, which are derived after
+// this.setLanguage() has been invoked
+this.setNavigationText = function() {
+	// Check most recently clicked node
+	if (!_container_.scriptScope.clickedTreeNode) { return; }
+
+	var node = _container_.scriptScope.clickedTreeNode;
+	var list = new dojo.collections.ArrayList();
+
+	for (var i = 0; i < _container_.scriptScope.clickedTreeNode.depth; i++) {
+		list.insert(0, utility.getText(_container_.scriptScope.nodeInfo[node.widgetId].title));
+		node = node.parent;
+	}
+
+	// Update navigation text
+	var e = dojo.byId("navigationBar");
+
+	if (e && e.lastChild !== null) {
+		e.replaceChild(document.createTextNode(list.toString(" - ")), e.lastChild);
+	}
+	else if (e) {
+		e.appendChild(document.createTextNode(list.toString(" - ")));
+	}
+};
+
+
+
+this.setLanguage = function(transNodeInfo) {
+	// For each object (tree node) in nodeInfo, we use attribute title
+	// as the key to look up display string
+	for (var i in transNodeInfo) {
+		var o = _container_.scriptScope.nodeInfo[i];
+		_container_.scriptScope.displayTextColor(o);
+	}
+};
+this.displayTextColor = function(o){
+//set color of title in left menu
+	if(o.widget.depth == 0) {
+		var text = o.title;
+		var id = "root";
+	}
+	else {
+		var text = utility.getText(o.title);
+		var id = o.widget.widgetId;
+	}
+
+	if (o.pane instanceof Pane) {
+		// A dirty code here
+		if (o.pane.level == 1) {
+			o.widget.edit({title: "<span id='" + id + "' style='color: rgb(6, 73, 111);'>" + text + "</span>"});
+		}
+		else {
+			o.widget.edit({title: "<span id='" + id + "' style='color: rgb(39, 127, 152);'>" + text + "</span>"});
+		}
+	}
+	else {
+		o.widget.edit({title: "<span id='" + id + "' style='color: rgb(6, 73, 111);'>" + text + "</span>"});
+	}
+}
+
+//
+// NOTE - Why use a parent parameter here? In Dojo's design, a tree node cannot
+// add a child tree node if it does not have a parent tree node, which prohibits
+// constructing a tree in a bottom-up fasion
+//
+// That's why using a parent parameter here
+//
+this.makeTree = function(/*Object*/map, /*String*/title, /*TreeNode*/parent) {
+	var treeNodeId = "";
+	if (map instanceof Pane && map.disabled === true) {
+		return;
+	}
+
+	if(GLOBALS['fwVersion'].indexOf("UAC")>=0 && title == "Server Name"){
+		title="Windows/CIFS";
+	}
+
+	if (this.isRoot) {
+		treeNodeId = "root";
+		this.isRoot = false;
+	}
+	else {
+		treeNodeId = title;
+	}
+
+	var node = dojo.widget.createWidget("TreeNode",{id:treeNodeId,widgetId:treeNodeId});
+	_container_.scriptScope.nodeInfo[node.widgetId] = {widget: node, title: title, pane: map};
+	parent.addChild(node);
+
+	if (!(map instanceof Pane)) {
+		for (var i in map) {
+			_container_.scriptScope.makeTree(map[i], i, node);
+			// By default, the tree is expanded
+			node.expand();
+		}
+	}
+};
+this.removeTreeNode = function(pkgNameArray){
+	for(var pkgIndex = 0 ; pkgIndex < pkgNameArray.length; pkgIndex++){
+		var location = pkgNameArray[pkgIndex].treeLocation.split(":");
+		for(var i=location.length-1; i >= 0 ; i--){
+			var lastLevelObj = _container_.scriptScope.getParentObj(location,i);
+			if(dojo.lang.isEmpty(lastLevelObj[location[i]]) || lastLevelObj[location[i]] instanceof Pane){
+				_container_.scriptScope.root.removeNode(dojo.widget.byId(location[i]));
+				delete _container_.scriptScope.nodeInfo[location[i]];
+				delete lastLevelObj[location[i]];
+			}
+		}
+	}
+}
+this.getParentObj = function(location,level){
+	var obj = siteMap["NSA-220"];
+	for(var i = 0; i< location.length; i++){
+		if(i == level){
+			return obj;
+		}
+		obj = obj[location[i]];
+	}
+}
+this.createTreeNode = function(nodeId,parentId,paneContent){
+	var node = dojo.widget.createWidget("TreeNode",{id:nodeId,widgetId:nodeId});
+	_container_.scriptScope.nodeInfo[node.widgetId] = {widget: node, title: nodeId, pane: paneContent};
+	dojo.widget.byId(parentId).addChild(node);
+	dojo.widget.byId(parentId).expand();
+	transedPkgString[node.widgetId] = node.widgetId;
+	_container_.scriptScope.moveTreeNode();
+}
+this.addChildItem = function(addType,addChildList){
+	for(var i=0; i< addChildList.length; i++){
+		if(!dojo.lang.isEmpty(addChildList[i].url) && addChildList[i].url.indexOf("html") >=0 ){
+			var title = addChildList[i].treeLocation.split(":");
+			if(!_container_.scriptScope.nodeInfo.hasOwnProperty(title[title.length-1]))
+				_container_.scriptScope.addProperty(addType,addChildList[i]);
+		}
+	}
+	if(addType == "treeNode"){//translate after installing pkg.
+		_container_.scriptScope.appendPkgI18n(addChildList);
+		_container_.scriptScope.setLanguage(transedPkgString);
+		transedPkgString={};
+	}
+}
+this.addProperty = function(type,builtInPkgList){
+	var checkObj = siteMap["NSA-220"];
+	var treeTitle = "root";
+	var builtPkgLocation = builtInPkgList.treeLocation.split(":");
+
+	for(var locaIndex=0; locaIndex< builtPkgLocation.length-1; locaIndex++){
+		var parentItemName = builtPkgLocation[locaIndex];
+		if(!checkObj.hasOwnProperty(parentItemName)){
+			if(locaIndex == 0)
+				moveNodeId.push(parentItemName);
+			checkObj[parentItemName] = {};
+			if(type == "treeNode")
+				_container_.scriptScope.createTreeNode(parentItemName,treeTitle,new Object());
+		}
+		checkObj = checkObj[parentItemName];
+		if(type == "treeNode")
+			treeTitle = parentItemName;
+	}
+	var depth = parseInt(builtPkgLocation.length);
+	var pane = new Pane(depth, '../pkg/'+builtInPkgList.url, false);
+	checkObj[builtPkgLocation[builtPkgLocation.length-1]] = pane;
+	if(type == "treeNode")
+		_container_.scriptScope.createTreeNode(builtPkgLocation[builtPkgLocation.length-1],treeTitle,pane);
+}
+
+this.initMenu = function(/*Boolean*/withUPnP) {
+	if (withUPnP === true) {
+		siteMap["NSA-220"]["Network"]["UPnP Port Mapping"].disabled = false;
+	}
+	if(GLOBALS['fwVersion'].indexOf("UAC")>=0){
+		siteMap["NSA-220"]["System Setting"]["Server Name"].file="net_winCIFS.html";
+	}
+
+	if(pkgList.length > 0){
+		_container_.scriptScope.addChildItem("obj",pkgList);
+	}
+
+	// Make the root tree node
+	_container_.scriptScope.root = dojo.widget.createWidget("Tree",
+		{toggle: "fade", toggleDuration: "250", selector: "treeSelector",
+		 sizeMin: "100", sizeShare: "15"});
+
+	// Build the menu tree from siteMap
+	_container_.scriptScope.makeTree(siteMap["NSA-220"], GLOBALS['serverName'], _container_.scriptScope.root);
+
+	// Add menu tree to this document tree
+	dojo.dom.prependChild(_container_.scriptScope.root.domNode, dojo.byId("mainMenuAnchor"));
+
+	_container_.scriptScope.moveTreeNode();
+
+	// Install event listener
+	var selectionTopic = dojo.event.topic.getTopic(_container_.scriptScope.root.selector.eventNames.select);
+
+	selectionTopic.subscribe({
+		update: function(message) {
+			_container_.scriptScope.clickedTreeNode = message.node;
+
+			// De-select to allow repeatedly clicking
+			_container_.scriptScope.root.selector.deselect();
+
+			var o = _container_.scriptScope.nodeInfo[message.node.widgetId];
+			if (o.pane instanceof Pane) { // Leaf node
+
+				if (o.pane.file == 'logout') {
+					dojo.widget.byId("confirmLogoutDialog").show();
+				}
+				else if (message.node.widgetId == 'Transmission' || (o.title && o.title == 'Transmission')) {
+					var cp = dojo.widget.byId("contentPane");
+					if (cp) {
+						cp.cacheContent = false;
+						cp.preventCache = true;
+						cp.setUrl("../pkg/Transmission/index.html?t=" + (new Date().getTime()));
+					}
+					_container_.scriptScope.setNavigationText();
+				}
+				else {
+					dojo.widget.byId("contentPane").setUrl(o.pane.file);
+					_container_.scriptScope.setNavigationText();
+				}
+			}
+		}
+	}, "update");
+
+	_container_.scriptScope.appendPkgI18n(pkgList);
+	// Show display strings
+	this.setLanguage(_container_.scriptScope.nodeInfo);
+};
+this.moveTreeNode = function(){
+	for(var i=0; i<moveNodeId.length; i++){
+		_container_.scriptScope.root.move(dojo.widget.byId(moveNodeId[i]), dojo.widget.byId(moveNodeId[i]).parent, dojo.widget.byId(moveNodeId[i]).getParentIndex() - 1);
+	}
+	moveNodeId = [];
+}
+_container_.addOnLoad(function() { // Init code
+	document.getElementById("mainMenuAnchor").style.height=dojo.html.getViewport().height-200+"px";
+	dojo.event.topic.subscribe("INIT_LEFT_MENU", this, "initMenu");
+	var broker = new Broker();
+	broker.addCmd( "getModelName" );
+	broker.addCmd('getFirmwareVersion');
+	broker.addCmd( "getServerName" );
+	broker.addCmd("getInstBuiltInPkg");
+
+	broker.setCallback({loadObject: _container_.scriptScope, loadFunc: 'getModelName',
+						errorObject: _container_.scriptScope, errorFunc: 'getModelName'
+	});
+	broker.execSync();
+	if(dojo.locale == "ru"){
+		dojo.html.setStyleAttributes(dojo.byId("status_bar"), "background: url(../res/image/panel_menu_bg1_russian.gif) no-repeat;");
+		dojo.byId("status_bar").onmouseover = function() {
+			dojo.html.setStyleAttributes(dojo.byId("status_bar"), "background: url(../res/image/panel_menu_bg1_on_russian.gif)");
+		};
+
+		dojo.byId("status_bar").onmouseout = function() {
+			dojo.html.setStyleAttributes(dojo.byId("status_bar"), "background: url(../res/image/panel_menu_bg1_russian.gif)");
+		};
+	}
+	else{
+		dojo.html.setStyleAttributes(dojo.byId("status_bar"), "background: url(../res/image/panel_menu_bg1.gif) no-repeat;");
+		dojo.byId("status_bar").onmouseover = function() {
+			dojo.html.setStyleAttributes(dojo.byId("status_bar"), "background: url(../res/image/panel_menu_bg1_on.gif)");
+		};
+
+		dojo.byId("status_bar").onmouseout = function() {
+			dojo.html.setStyleAttributes(dojo.byId("status_bar"), "background: url(../res/image/panel_menu_bg1.gif)");
+		};
+	}
+
+	var openStatus = {
+		run: function() {
+			dojo.widget.byId("contentPane").setUrl("status.html");
+
+			// Update navigation text
+			var e = dojo.byId("navigationBar");
+			if (e) {
+				dojo.dom.replaceChildren(e, document.createTextNode(utility.getText("Status")));
+			}
+		}
+	};
+
+	var openApplication = {
+		run: function(url,title) {
+			dojo.widget.byId("contentPane").setUrl(url);
+
+			// Update navigation text
+			var e = dojo.byId("navigationBar");
+			if (e) {
+				dojo.dom.replaceChildren(e, document.createTextNode(title));
+			}
+		}
+	};
+
+	var openPkg = {
+		run: function(url,title) {
+			dojo.widget.byId("contentPane").setUrl('../pkg/'+url);
+
+			var titleArray = title.split(":");
+			var text ="";
+			for(var i=0; i< titleArray.length; i++){
+				text += utility.getText(titleArray[i])+" - ";
+			}
+			text = text.replace(/(\ - $)/g,"");
+
+			// Update navigation text
+			var e = dojo.byId("navigationBar");
+			if (e) {
+				dojo.dom.replaceChildren(e, document.createTextNode(text));
+			}
+		}
+	};
+
+
+	if (location.search.indexOf("dest=dservice") > 0) {
+		openApplication.run("apps_download_service.html",utility.getText("Applications")+" - "+utility.getText("Download Service"));
+	}
+	else if (location.search.indexOf("dest=transmission") > 0) {
+		openApplication.run("../pkg/Transmission/index.html",utility.getText("Applications")+" - Transmission");
+	}
+	else if (location.search.indexOf("dest=ftpserver") > 0) {
+		openApplication.run("apps_ftp.html",utility.getText("Applications")+" - "+utility.getText("FTP Server"));
+	}
+	else if (location.search.indexOf("dest=ftpuploadr") > 0) {
+		openApplication.run("apps_ftp_upload.html",utility.getText("Applications")+" - "+utility.getText("Auto Upload")+" - "+utility.getText("FTP Uploadr"));
+	}
+	else if (location.search.indexOf("dest=flickruploadr") > 0 || location.search.indexOf("dest=youtubeuploadr") > 0) {
+		openApplication.run("apps_auto_upload.html",utility.getText("Applications")+" - "+utility.getText("Auto Upload")+" - "+utility.getText("Flickr/YouTube"));
+	}
+	else if (location.search.indexOf("dest=broadcatching") > 0) {
+		openApplication.run("apps_broadcatching.html",utility.getText("Applications")+" - "+utility.getText("Broadcatching"));
+	}
+	else if (location.search.indexOf("dest=mediaserver") > 0 || location.search.indexOf("dest=ituneserver") > 0) {
+		if (location.search.indexOf("dest=ituneserver") > 0) {
+			this.linkToiTune = true;
+		}
+		openApplication.run("apps_media_server.html",utility.getText("Applications")+" - "+utility.getText("Media Server"));
+	}
+	else if (location.search.indexOf("dest=copybtn") > 0) {
+		openApplication.run("apps_copy_button.html",utility.getText("Applications")+" - "+utility.getText("Copy/Sync Button"));
+	}
+	else if (location.search.indexOf("dest=webpublishing") > 0) {
+		openApplication.run("apps_web_service.html",utility.getText("Applications")+" - "+utility.getText("Web Publishing"));
+	}
+	else if (location.search.indexOf("dest=printserver") > 0) {
+		openApplication.run("apps_printer_server.html",utility.getText("Applications")+" - "+utility.getText("Print Server"));
+	}
+	else if (location.search.indexOf("pkg=") > 0) {
+		var url = location.search.substring(location.search.indexOf("pkg=")+4,location.search.indexOf("&"));
+		var title = location.search.substring(location.search.indexOf("title=")+6,location.search.length);
+		openPkg.run(url,title);
+	}
+	else {
+		openStatus.run();
+	}
+
+	dojo.event.connect(dojo.byId("status_bar"), "onclick", openStatus, "run");
+});
+
+this.getModelName = function(obj,isFromServerNamePage){
+	pkgList = obj.builtInPkg;
+	if(isFromServerNamePage)
+		GLOBALS['serverName'] = obj;
+	else{
+		GLOBALS['modelName'] = obj.modelName;
+		GLOBALS['serverName'] = obj.hostName;
+		GLOBALS['fwVersion'] = obj.fwVersion;
+		try {
+			if (obj.fwVersion.indexOf("AFE") > -1 || obj.fwVersion.indexOf("AFH") > -1) {
+				dojo.event.topic.publish("INIT_LEFT_MENU", true);
+			}
+			else {
+				dojo.event.topic.publish("INIT_LEFT_MENU", false);
+			}
+		}
+		catch(e) {
+			dojo.event.topic.publish("INIT_LEFT_MENU", false);
+		}
+	}
+
+	if(GLOBALS["replaceStr"].hasOwnProperty(GLOBALS['modelName']))
+		document.title = GLOBALS["replaceStr"][GLOBALS['modelName']].company+" "+GLOBALS['serverName'];
+	else {
+		document.title = "ZyXEL "+GLOBALS['serverName'];
+	}
+}
+this.appendPkgI18n = function(pkgList){
+	if(dojo.locale.indexOf("-") >= 0)
+		var language = dojo.locale.replace(/-/g,"");
+	else
+		var language = dojo.locale;
+
+	for(var i=0; i< pkgList.length; i++){
+
+		if(utility.loadI18nPkgName.hasOwnProperty(pkgList[i].pkgName)){
+			var i18nStrings = eval(pkgList[i].pkgName);
+
+			if(!dojo.lang.isUndefined(i18nStrings[language])){
+				for(var transIndex in i18nStrings[language]){
+					if(!getLanguageObj.hasOwnProperty(transIndex)){
+						getLanguageObj[transIndex] = i18nStrings[language][transIndex];
+					}
+				}
+			}
+		}
+	}
+}
+
+_container_.addOnUnload(function() { // Finalization code
+	dojo.event.topic.unsubscribe("INIT_LEFT_MENU", this, initMenu);
+});
+</script>
+
+<div style="margin: 0; padding: 0; width: 100%; height: 100%; background-color: rgb(34, 63, 102);">
+
+<div dojoType="TreeSelector" eventNames="select:listSelected" widgetId="treeSelector"></div>
+<div style="width: 178px; height: 19px; background: url(../res/image/panel_menu_dot.gif) no-repeat;"></div>
+
+<div dojoType="LayoutContainer" layoutChildPriority='top-bottom' style="width: 100%; height: 100%;">
+	<div dojoType="ContentPane" layoutAlign="client" style="overflow-y:hidden;">
+		<div id="status_bar" style="width: 178px; height: 62px; cursor: pointer;"></div>
+		<div style="padding-left: 14px; background: url(../res/image/panel_menu_bg2.gif) repeat-y;">
+			<div id="mainMenuAnchor" style="overflow-x: auto; overflow-y: auto; width: 164px;height:55em;"></div>
+		</div>
+		<div style="width: 178px; height: 72px; background: url(../res/image/panel_menu_bg3.gif) no-repeat;"></div>
+	</div>
+</div>
+
+</div>

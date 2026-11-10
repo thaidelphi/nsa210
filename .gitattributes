@@ -1,0 +1,16 @@
+# Set default behavior to automatically handle line endings
+* text=auto
+
+# Linux scripts must always have LF line endings
+*.sh text eol=lf
+*.pl text eol=lf
+init.d/sshd text eol=lf
+bin/tracker_proxy.pl text eol=lf
+bin/curl-8.14 binary
+
+# Web assets
+*.html text
+*.js text
+*.json text
+*.conf text
+*.md text

@@ -10,6 +10,8 @@ my $PORT = 8888;
 my $CURL = '/usr/local/zy-pkgs/bin/curl-8.14';
 my $TR_REMOTE = 'LD_LIBRARY_PATH=/usr/local/zy-pkgs/lib /usr/local/zy-pkgs/bin/transmission-remote';
 my $TORRENT_DIR = '/etc/zyxel/zy-pkgs/Transmission/torrents';
+my $LOG_FILE = '/usr/local/zy-pkgs/config/Transmission/tracker_proxy.log';
+my $MAX_LOG_SIZE = 512000; # 500 KB
 
 my %DNS_CACHE = (
     'sv-seed.com'       => '104.21.38.140',
@@ -90,6 +92,15 @@ while (1) {
     my $now = time();
     if ($now - $last_check >= 30) {
         $last_check = $now;
+
+        # Rotate log if it exceeds 500 KB to protect storage/RAM
+        if (-f $LOG_FILE && -s $LOG_FILE > $MAX_LOG_SIZE) {
+            rename($LOG_FILE, "$LOG_FILE.old");
+            if (open(my $lh, ">", $LOG_FILE)) {
+                close($lh);
+            }
+        }
+
         auto_patch_torrents();
     }
     

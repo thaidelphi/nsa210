@@ -36,7 +36,8 @@ case "$1" in
         # 5.5 Start TLS 1.2/1.3 tracker forwarder proxy
         if [ -x /usr/local/zy-pkgs/bin/tracker_proxy.pl ]; then
             killall perl 2>/dev/null
-            /ffp/bin/perl /usr/local/zy-pkgs/bin/tracker_proxy.pl </dev/null >/tmp/tracker_proxy.log 2>&1 &
+            mkdir -p /usr/local/zy-pkgs/config/Transmission
+            /ffp/bin/perl /usr/local/zy-pkgs/bin/tracker_proxy.pl </dev/null >>/usr/local/zy-pkgs/config/Transmission/tracker_proxy.log 2>&1 &
         fi
 
         # 6. Start Transmission BitTorrent client

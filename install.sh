@@ -122,9 +122,10 @@ fi
 # 8. Start / Restart Tracker Proxy Daemon
 echo "[+] Starting Tracker Proxy Daemon..."
 killall perl 2>/dev/null || true
+mkdir -p /usr/local/zy-pkgs/config/Transmission
 if [ -x /ffp/bin/perl ] && [ -x /usr/local/zy-pkgs/bin/tracker_proxy.pl ]; then
-    /ffp/bin/perl /usr/local/zy-pkgs/bin/tracker_proxy.pl </dev/null >/tmp/tracker_proxy.log 2>&1 &
-    echo "    Tracker proxy listening on 127.0.0.1:8888 (log: /tmp/tracker_proxy.log)"
+    /ffp/bin/perl /usr/local/zy-pkgs/bin/tracker_proxy.pl </dev/null >>/usr/local/zy-pkgs/config/Transmission/tracker_proxy.log 2>&1 &
+    echo "    Tracker proxy listening on 127.0.0.1:8888 (log: /usr/local/zy-pkgs/config/Transmission/tracker_proxy.log)"
 else
     echo "    [!] Warning: Perl not found at /ffp/bin/perl. Please ensure FFP is installed."
 fi

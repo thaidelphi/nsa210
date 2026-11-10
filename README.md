@@ -28,9 +28,12 @@ ZyXEL NSA210 เป็น NAS พลังงานต่ำ (CPU Marvell Kirkwo
 - **DNS Cache & Cloudflare Anycast:** แก้ปัญหา DNS timeout บน NAS ด้วยการแมป IP ตรง (`--resolve host:443:ip`)
 - **รองรับ Disabled Tracker:** ระบบจำลองการตอบกลับเพื่อรองรับการพัก Tracker ได้อย่างราบรื่นโดยไม่เกิดข้อผิดพลาดกับ Transmission Daemon
 - **Auto-Patching Loop:** สแกนตรวจสอบ Torrent ที่เพิ่งเพิ่มเข้ามาใหม่ทุก 30 วินาที และแปลง HTTPS Tracker ผ่าน Proxy ให้อัตโนมัติ
+- **Log Rotation บนฮาร์ดดิสก์:** บันทึก Log ลงฮาร์ดดิสก์จริง (`/dev/md0`) พร้อมระบบหมุนเวียนไฟล์อัตโนมัติเมื่อขนาดเกิน 500 KB ป้องกัน RAMDisk (`/tmp`) เต็ม 100%
 
-### 2. Transmission Web UI - เครื่องมือแก้ไข Tracker สไตล์ BitComet
+### 2. Transmission Web UI & Memory Tuning
 - **ปุ่ม [ ✏️ แก้ Tracker (BitComet) ] บน Toolbar** และเมนูคลิกขวา (Context Menu)
+- **ระบบ Watch Folder (`U:\watch`):** เพียงวางไฟล์ `.torrent` ลงในโฟลเดอร์ ระบบจะดึงไปดาวน์โหลดให้อัตโนมัติ
+- **ปรับแต่ง Memory & Disk Cache สำหรับ RAM 128MB:** ควบคุม Peer Limit (120), Download Queue (5) และ Cache Size (4MB) เพื่อการทำงานที่เสถียร ไม่แย่งแรมระบบ
 - **เครื่องมือจัดการ URL Tracker:** เพิ่ม/แก้ไขรายการ Tracker ทีละหลายบรรทัดได้สะดวกเหมือนโปรแกรม BitComet บน PC
 - **เลือกลิสต์ Torrent ได้จาก Dropdown** ภายในกล่อง Popup ทันที
 - **บันทึกแบบ Sequential RPC:** เรียก `trackerAdd` ก่อนแล้วตามด้วย `trackerRemove` เพื่อขจัดบั๊ก `Transmission RPC: invalid argument`

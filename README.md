@@ -78,6 +78,7 @@ nsa210/
 │   └── admin/
 │       └── frame_left_menu.html    # แพตช์เมนูด้านซ้ายของ ZyXEL Admin Portal
 ├── samba/
+│   ├── connect_nsa210.bat          # สคริปต์คลิกเดียวสำหรับเชื่อมต่อและเปิดไดรฟ์ U: (Windows)
 │   ├── fix_smb_windows11.bat       # สคริปต์แก้ปัญหาการเชื่อมต่อ Samba บน Windows 11 (24H2)
 │   └── smb.conf                    # คอนฟิก Samba สำหรับแชร์ไฟล์สู่ Windows 10/11
 ├── init.d/

@@ -45,6 +45,13 @@ case "$1" in
             LD_LIBRARY_PATH=/usr/local/zy-pkgs/lib /usr/local/zy-pkgs/bin/transmission-daemon -g /usr/local/zy-pkgs/config/Transmission/ 2>/dev/null
         fi
 
+        # 6.5 Stop redundant ZyXEL background services to free up RAM
+        touch /etc/zyxel/dservice.disable
+        killall -9 dservice 2>/dev/null
+        killall -9 fadd 2>/dev/null
+        killall -9 python 2>/dev/null
+        killall -9 mediaserver 2>/dev/null
+
         # 7. Bind mount customized Web GUI menu
         if [ -f /i-data/fe336d09/ffp/web_mod/frame_left_menu.html ]; then
             mount --bind /i-data/fe336d09/ffp/web_mod/frame_left_menu.html /usr/local/apache/htdocs/zyxel/admin/frame_left_menu.html 2>/dev/null

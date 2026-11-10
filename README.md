@@ -33,7 +33,8 @@ ZyXEL NSA210 เป็น NAS พลังงานต่ำ (CPU Marvell Kirkwo
 
 ### 2. Transmission Web UI & Memory Tuning
 - **ปุ่ม [ ✏️ แก้ Tracker (BitComet) ] บน Toolbar** และเมนูคลิกขวา (Context Menu)
-- **ระบบ Watch Folder (`U:\watch`):** เพียงวางไฟล์ `.torrent` ลงในโฟลเดอร์ ระบบจะดึงไปดาวน์โหลดให้อัตโนมัติ
+- **ระบบ Watch Folder (`U:\watch`):** เพียงวางไฟล์ `.torrent` ลงในโฟลเดอร์ ระบบจะดึงไปดาวน์โหลดและลบไฟล์ `.torrent` ออกให้อัตโนมัติทันทีเพื่อให้โฟลเดอร์สะอาด
+- **ปิด Service ส่วนเกินของ ZyXEL เพื่อคืน RAM:** ปิด `dservice`, `mediaserver`, `fileye.py` และ `fadd` อัตโนมัติเมื่อบูตเครื่อง คืน RAM กลับมาราว 20-30 MB และลดการใช้ Swap ลงมหาศาล
 - **ปรับแต่ง Memory & Disk Cache สำหรับ RAM 128MB:** ควบคุม Peer Limit (120), Download Queue (5) และ Cache Size (4MB) เพื่อการทำงานที่เสถียร ไม่แย่งแรมระบบ
 - **เครื่องมือจัดการ URL Tracker:** เพิ่ม/แก้ไขรายการ Tracker ทีละหลายบรรทัดได้สะดวกเหมือนโปรแกรม BitComet บน PC
 - **เลือกลิสต์ Torrent ได้จาก Dropdown** ภายในกล่อง Popup ทันที

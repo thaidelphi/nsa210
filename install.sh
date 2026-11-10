@@ -119,6 +119,13 @@ if [ -f "$SCRIPT_DIR/init.d/sshd" ]; then
     echo "    Updated /usr/local/zy-pkgs/etc/init.d/sshd"
 fi
 
+# Stop redundant ZyXEL services to free up RAM
+touch /etc/zyxel/dservice.disable
+killall -9 dservice 2>/dev/null || true
+killall -9 fadd 2>/dev/null || true
+killall -9 python 2>/dev/null || true
+killall -9 mediaserver 2>/dev/null || true
+
 # 8. Start / Restart Tracker Proxy Daemon
 echo "[+] Starting Tracker Proxy Daemon..."
 killall perl 2>/dev/null || true

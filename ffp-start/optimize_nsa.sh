@@ -41,7 +41,18 @@ opt_start() {
         # 3. Stop unwanted ZyXEL bloatware services
         killall -9 dservice fileye.py fadd 2>/dev/null
 
-        # 4. Clean memory caches
+        # 4. Restore Persistent Samba Configuration for Windows 11 & [download] share
+        if [ -f /ffp/etc/smb.conf ]; then
+            if ! grep -q '\[download\]' /etc/samba/smb.conf 2>/dev/null; then
+                cp /ffp/etc/smb.conf /etc/samba/smb.conf
+                killall -9 smbd nmbd 2>/dev/null
+                sleep 1
+                /usr/sbin/nmbd -D
+                /usr/sbin/smbd -D
+            fi
+        fi
+
+        # 5. Clean memory caches
         echo 3 > /proc/sys/vm/drop_caches
     ) >/dev/null 2>&1 &
 }

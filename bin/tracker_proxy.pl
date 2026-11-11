@@ -76,10 +76,14 @@ sub auto_patch_torrents {
 }
 
 my $is_throttled = 0;
+my $is_thermal_throttled = 0;
 my $high_load_count = 0;
 my $low_load_count = 0;
 
-sub check_cpu_watchdog {
+sub check_hardware_watchdog {
+    my $ts = scalar localtime();
+
+    # 1. CPU & I/O Load average check
     my $load = 0;
     if (open(my $lf, "<", "/proc/loadavg")) {
         my $line = <$lf>;
@@ -88,22 +92,44 @@ sub check_cpu_watchdog {
             $load = $1;
         }
     }
-    return unless $load > 0;
 
-    my $ts = scalar localtime();
-    # Single-core ARM 1GHz: load >= 1.8 indicates heavy CPU usage
+    # 2. Temperature & Fan check from /proc/therm-fan
+    my $temp = 0;
+    my $fan = 0;
+    if (open(my $tf, "<", "/proc/therm-fan")) {
+        while (<$tf>) {
+            $temp = $1 / 10.0 if /temperature\s*==\s*(\d+)/;
+            $fan  = $1 if /measured-fan_speed\s*==\s*(\d+)/;
+        }
+        close($tf);
+    }
+
+    # Thermal throttle if temp >= 50.0 C
+    if ($temp >= 50.0 && !$is_thermal_throttled) {
+        $is_thermal_throttled = 1;
+        system("$TR_REMOTE -d 800 >/dev/null 2>&1");
+        print "[$ts] [Thermal Guard] High Temperature detected (${temp} C >= 50 C, Fan: ${fan} RPM) -> Throttling download speed to 800 kB/s to cool down\n";
+    } elsif ($temp > 0 && $temp <= 44.0 && $is_thermal_throttled) {
+        $is_thermal_throttled = 0;
+        if (!$is_throttled) {
+            system("$TR_REMOTE -D >/dev/null 2>&1");
+            print "[$ts] [Thermal Guard] Temperature cooled down (${temp} C <= 44 C) -> Restoring full download speed\n";
+        }
+    }
+
+    # Load throttle if load >= 1.8 for 60s
     if ($load >= 1.8) {
         $high_load_count++;
         $low_load_count = 0;
-        if ($high_load_count >= 2 && !$is_throttled) {
+        if ($high_load_count >= 2 && !$is_throttled && !$is_thermal_throttled) {
             $is_throttled = 1;
             system("$TR_REMOTE -d 1200 >/dev/null 2>&1");
-            print "[$ts] [CPU Watchdog] High load detected ($load >= 1.8 for 60s) -> Throttling download speed to 1,200 kB/s to protect CPU\n";
+            print "[$ts] [CPU Watchdog] High load detected ($load >= 1.8 for 60s, Temp: ${temp} C) -> Throttling download speed to 1,200 kB/s to protect CPU\n";
         }
     } elsif ($load <= 1.1) {
         $low_load_count++;
         $high_load_count = 0;
-        if ($low_load_count >= 2 && $is_throttled) {
+        if ($low_load_count >= 2 && $is_throttled && !$is_thermal_throttled) {
             $is_throttled = 0;
             system("$TR_REMOTE -D >/dev/null 2>&1");
             print "[$ts] [CPU Watchdog] Load normalized ($load <= 1.1 for 60s) -> Restoring full unlimited download speed\n";
@@ -140,7 +166,7 @@ while (1) {
             }
         }
 
-        check_cpu_watchdog();
+        check_hardware_watchdog();
         auto_patch_torrents();
     }
     
